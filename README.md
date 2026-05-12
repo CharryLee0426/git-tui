@@ -28,6 +28,20 @@ Keyboard-first Git TUI for browsing a repository, reviewing commits, staging cha
 npm install
 ```
 
+To make `guitui` available from any directory:
+
+```bash
+npm run setup-bin
+```
+
+By default this creates a symlink at `~/.local/bin/guitui`. If `~/.local/bin` is not on your `PATH`, the script prints the exact shell line to add.
+
+Use a custom bin directory:
+
+```bash
+GUITUI_BIN_DIR="$HOME/bin" npm run setup-bin
+```
+
 ## Run
 
 From this project:
@@ -74,8 +88,8 @@ Browse files, preview code, inspect the commit graph, and review structured comm
 
 Review changed files and create commits.
 
-- Press Enter on a changed file to preview its diff.
-- Press Enter again on the same file to stage it.
+- Press Enter on a changed file to preview its diff in the scrollable right pane.
+- Press `s` to stage the selected file.
 - Press `u` to unstage the selected file.
 - Press `m` to edit the commit message.
 - Press `c` to create the commit.
@@ -87,6 +101,8 @@ Lists GitHub issues when `gh` is installed and authenticated. Otherwise, scans l
 ### Agents
 
 Ask natural-language questions about the current repository or selected commit. Slash commands still run locally.
+
+After a response arrives, the transcript pane is focused so you can scroll with `j/k`, PageUp/PageDown, Ctrl-U/Ctrl-D, `g`, and `G`. Press `a` to return to the input, or `v` to focus the transcript again.
 
 ### Search
 
@@ -105,10 +121,12 @@ Shows in-app usage instructions and keybindings.
 - `b`: focus file browser.
 - `c`: in Repository, focus commit graph; in Commit, create commit.
 - `a`: focus agent input.
-- `Enter`: preview the selected item; in Commit, preview then stage a changed file.
+- `v`: focus agent transcript in the Agents tab.
+- `Enter`: preview the selected item; in Commit, open the selected file diff preview.
 - `d`: show selected file diff.
 - `e`: edit selected file in the built-in editor.
 - `m`: edit commit message in the Commit tab.
+- `s`: stage selected file in the Commit tab.
 - `u`: unstage selected file in the Commit tab.
 - `r`: refresh.
 - `Ctrl-K` or `:`: focus command input.

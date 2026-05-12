@@ -8,6 +8,7 @@
   },
   "scripts": {
     "start": "node ./bin/guitui.js",
+    "setup-bin": "bash ./scripts/setup-bin.sh",
     "smoke": "node --check ./bin/guitui.js && node --check ./src/app.js"
   },
   "dependencies": {

@@ -28,6 +28,20 @@
 npm install
 ```
 
+让 `guitui` 可以在任意目录调用：
+
+```bash
+npm run setup-bin
+```
+
+默认会创建符号链接 `~/.local/bin/guitui`。如果 `~/.local/bin` 不在 `PATH` 中，脚本会打印需要添加到 shell 配置里的命令。
+
+使用自定义 bin 目录：
+
+```bash
+GUITUI_BIN_DIR="$HOME/bin" npm run setup-bin
+```
+
 ## 运行
 
 在当前项目中运行：
@@ -74,8 +88,8 @@ export OPENAI_MODEL="gpt-5"
 
 查看变更文件并创建提交。
 
-- 在变更文件上按 Enter 预览 diff。
-- 对同一个文件再次按 Enter 暂存该文件。
+- 在变更文件上按 Enter，在可滚动的右侧面板中预览 diff。
+- 按 `s` 暂存选中文件。
 - 按 `u` 取消暂存选中文件。
 - 按 `m` 编辑提交信息。
 - 按 `c` 创建提交。
@@ -87,6 +101,8 @@ export OPENAI_MODEL="gpt-5"
 ### Agents
 
 用自然语言询问当前仓库或选中提交。斜杠命令仍然在本地执行。
+
+收到回复后，焦点会自动进入 transcript 面板，可以用 `j/k`、PageUp/PageDown、Ctrl-U/Ctrl-D、`g` 和 `G` 滚动。按 `a` 回到输入框，或按 `v` 再次聚焦 transcript。
 
 ### Search
 
@@ -105,10 +121,12 @@ export OPENAI_MODEL="gpt-5"
 - `b`：聚焦文件浏览器。
 - `c`：在 Repository 中聚焦提交图；在 Commit 中创建提交。
 - `a`：聚焦 agent 输入框。
-- `Enter`：预览选中项；在 Commit 中用于预览并暂存变更文件。
+- `v`：在 Agents 标签页聚焦 agent transcript。
+- `Enter`：预览选中项；在 Commit 中打开选中文件的 diff 预览。
 - `d`：显示选中文件 diff。
 - `e`：用内置编辑器编辑选中文件。
 - `m`：在 Commit 标签页编辑提交信息。
+- `s`：在 Commit 标签页暂存选中文件。
 - `u`：在 Commit 标签页取消暂存选中文件。
 - `r`：刷新。
 - `Ctrl-K` 或 `:`：聚焦命令输入框。

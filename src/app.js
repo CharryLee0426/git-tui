@@ -123,12 +123,12 @@ const helpTopics = [
   {
     title: "Commit view",
     content: [
-      "{bold}Commit tab{/bold}",
-      "Shows changed files from the local working tree.",
-    "Press Enter on a changed file to preview its diff. Press Enter again on the same file to stage it.",
+    "{bold}Commit tab{/bold}",
+    "Shows changed files from the local working tree.",
+    "Press Enter on a changed file to preview its diff in the scrollable right pane.",
     "The middle panel is a commit form with branch, staged count, unstaged count, message, and actions.",
     "Diff previews focus the right pane so j/k, PageUp, and PageDown scroll. Press f or b to return to changed files.",
-    "Press m to write the commit message. Press c to create the commit. Press u to unstage the selected file."
+    "Press s to stage the selected file. Press m to write the commit message. Press c to create the commit. Press u to unstage."
     ]
   },
   {
@@ -1018,7 +1018,8 @@ function commitPanelItems(state) {
     message ? escapeTags(message) : "{gray-fg}No commit message yet. Press m or run /message <text>.{/gray-fg}",
     "",
     "{bold}Actions{/bold}",
-    "Enter on file: preview, then stage",
+    "Enter on file: preview diff",
+    "s: stage selected file",
     "u: unstage selected file",
     "m: edit commit message",
     "c: create commit",
@@ -1335,7 +1336,7 @@ function setCommit(state, layout, screen, preferredRelative = selectedFile(state
   layout.center.setItems(commitPanelItems(state));
   layout.right.setLabel(" File Diff Preview ");
   layout.right.setContent(changed.length
-    ? "Select a changed file and press Enter to preview its diff. Press Enter again on the same file to stage it."
+    ? "Select a changed file and press Enter to preview its diff. Press s to stage the selected file."
     : "No changed files detected in this working tree.");
   state.commitPreviewedFile = "";
   screen.render();
@@ -1346,7 +1347,7 @@ function refreshCommitView(state, layout, screen, preferredRelative = selectedFi
   renderHeader(layout.header, state);
 }
 
-function previewOrStageSelectedFile(state, layout, screen) {
+function previewSelectedCommitFile(state, layout, screen) {
   if (state.activeTab !== "Commit") return false;
   const now = Date.now();
   if (now - (state.commitEnterHandledAt || 0) < 80) return true;
@@ -1354,23 +1355,25 @@ function previewOrStageSelectedFile(state, layout, screen) {
   const entry = selectedFile(state, layout);
   if (!entry || entry.type !== "file" || !state.statusMap.has(entry.relative)) return true;
 
-  if (state.commitPreviewedFile !== entry.relative) {
-    layout.right.setLabel(` Diff: ${entry.relative} `);
-    layout.right.setContent(commitDiffForFile(state.cwd, entry));
-    layout.right.setScroll(0);
-    layout.right.focus();
-    state.commitPreviewedFile = entry.relative;
-    state.mode = `Previewing diff: ${entry.relative}`;
-    renderHeader(layout.header, state);
-    screen.render();
-    return true;
-  }
+  layout.right.setLabel(` Diff: ${entry.relative} `);
+  layout.right.setContent(commitDiffForFile(state.cwd, entry));
+  layout.right.setScroll(0);
+  layout.right.focus();
+  state.commitPreviewedFile = entry.relative;
+  state.mode = `Previewing diff: ${entry.relative}`;
+  renderHeader(layout.header, state);
+  screen.render();
+  return true;
+}
 
+function stageSelectedFile(state, layout, screen) {
+  if (state.activeTab !== "Commit") return;
+  const entry = selectedFile(state, layout);
+  if (!entry || entry.type !== "file" || !state.statusMap.has(entry.relative)) return;
   const result = git(["add", "--", entry.relative], state.cwd);
   state.mode = result ? `Stage output: ${result}` : `Staged: ${entry.relative}`;
   state.commitPreviewedFile = "";
   refreshCommitView(state, layout, screen, entry.relative);
-  return true;
 }
 
 function unstageSelectedFile(state, layout, screen) {
@@ -1397,7 +1400,7 @@ function createCommitFromForm(state, layout, screen) {
     return;
   }
   if (!git(["diff", "--cached", "--name-only"], state.cwd)) {
-    state.mode = "No staged files. Press Enter twice on changed files to stage them.";
+    state.mode = "No staged files. Press s on changed files to stage them.";
     renderHeader(layout.header, state);
     screen.render();
     return;
@@ -1730,6 +1733,8 @@ function setAgents(state, layout, screen) {
     process.env.OPENAI_API_KEY ? "{green-fg}OPENAI_API_KEY configured{/green-fg}" : "{yellow-fg}OPENAI_API_KEY missing{/yellow-fg}",
     "Freeform text asks the agent",
     "Slash commands stay local",
+    "v focuses transcript",
+    "a focuses input",
     "",
     "/commit [hash] inspect commit",
     "/diff          selected file diff",
@@ -1742,7 +1747,7 @@ function setAgents(state, layout, screen) {
 }
 
 function renderAgentTranscript(state, layout) {
-  layout.right.setLabel(" OpenAI Git Agent ");
+  layout.right.setLabel(" OpenAI Git Agent: j/k scroll, a input ");
   if (!state.agentMessages.length) {
     layout.right.setContent([
       "{bold}Ask about the selected commit or working tree.{/bold}",
@@ -1870,7 +1875,7 @@ async function handleCommand(command, state, layout, screen) {
       renderHeader(layout.header, state);
       layout.input.clearValue();
       layout.input.setValue("> ");
-      layout.input.focus();
+      layout.right.focus();
       screen.render();
     }
     return;
@@ -1987,7 +1992,7 @@ export function run() {
     if (state.activeTab === "Commit") {
       state.commitPreviewedFile = "";
       layout.right.setLabel(" File Diff Preview ");
-      layout.right.setContent("Press Enter to preview this file. Press Enter again on the same file to stage it.");
+      layout.right.setContent("Press Enter to preview this file. Press s to stage the selected file.");
       screen.render();
       return;
     }
@@ -1997,7 +2002,7 @@ export function run() {
   layout.sidebar.on("keypress", (_, key = {}) => {
     setTimeout(() => {
       if (state.activeTab === "Commit" && ["enter", "space"].includes(key.name)) {
-        previewOrStageSelectedFile(state, layout, screen);
+        previewSelectedCommitFile(state, layout, screen);
         return;
       }
       if (state.activeTab === "Commit") return;
@@ -2046,6 +2051,14 @@ export function run() {
     if (key.name === "f" && state.activeTab === "Commit") {
       layout.sidebar.focus();
       state.mode = "Changed files focused";
+      renderHeader(layout.header, state);
+      screen.render();
+      return;
+    }
+    if (key.name === "a" && state.activeTab === "Agents") {
+      layout.input.setValue("> ");
+      layout.input.focus();
+      state.mode = "Agent input focused";
       renderHeader(layout.header, state);
       screen.render();
       return;
@@ -2119,11 +2132,19 @@ export function run() {
     renderHeader(layout.header, state);
     screen.render();
   });
+  screen.key("v", () => {
+    if (state.editor) return;
+    if (state.activeTab !== "Agents") return;
+    layout.right.focus();
+    state.mode = "Agent transcript focused";
+    renderHeader(layout.header, state);
+    screen.render();
+  });
 
   screen.key("enter", () => {
     if (state.editor) return;
     if (screen.focused === layout.sidebar && state.activeTab === "Commit") {
-      previewOrStageSelectedFile(state, layout, screen);
+      previewSelectedCommitFile(state, layout, screen);
       return;
     }
     if (screen.focused === layout.sidebar) showSelectedFile(state, layout, screen);
@@ -2164,6 +2185,11 @@ export function run() {
     state.mode = "Editing commit message";
     renderHeader(layout.header, state);
     screen.render();
+  });
+  screen.key("s", () => {
+    if (state.editor) return;
+    if (state.activeTab !== "Commit") return;
+    stageSelectedFile(state, layout, screen);
   });
   screen.key("C", () => {
     if (state.editor) return;
