@@ -1,0 +1,20 @@
+{
+  "name": "guitui",
+  "version": "0.1.0",
+  "description": "Keyboard-first Git, GitHub, and AI agent TUI prototype.",
+  "type": "module",
+  "bin": {
+    "guitui": "./bin/guitui.js"
+  },
+  "scripts": {
+    "start": "node ./bin/guitui.js",
+    "smoke": "node --check ./bin/guitui.js && node --check ./src/app.js"
+  },
+  "dependencies": {
+    "blessed": "^0.1.81"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}
