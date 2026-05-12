@@ -3,17 +3,60 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import blessed from "blessed";
 
-const palette = {
-  bg: "#0D1117",
-  surface: "#161B22",
-  surface2: "#21262D",
-  border: "#30363D",
-  text: "#C9D1D9",
-  primary: "#58A6FF",
-  success: "#3FB950",
-  warning: "#D29922",
-  danger: "#F85149"
-};
+function detectTheme() {
+  const requested = String(process.env.GUITUI_THEME || "auto").toLowerCase();
+  if (requested === "light" || requested === "dark") return requested;
+
+  const colorFgBg = process.env.COLORFGBG || "";
+  const background = Number(colorFgBg.split(";").at(-1));
+  if (Number.isFinite(background)) {
+    return background >= 7 && background <= 15 ? "light" : "dark";
+  }
+
+  return "dark";
+}
+
+function createPalette() {
+  const theme = detectTheme();
+  const transparent = "default";
+  if (theme === "light") {
+    return {
+      theme,
+      bg: transparent,
+      surface: transparent,
+      surface3: "#E5E7EB",
+      border: "#9CA3AF",
+      borderActive: "#0284C7",
+      text: "#111827",
+      muted: "#6B7280",
+      primary: "#0369A1",
+      primaryStrong: "#0284C7",
+      success: "#15803D",
+      textTag: "black",
+      selectedFg: "white",
+      selectedTag: "white"
+    };
+  }
+
+  return {
+    theme,
+    bg: transparent,
+    surface: transparent,
+    surface3: "#182331",
+    border: "#273241",
+    borderActive: "#7DD3FC",
+    text: "#E6EDF3",
+    muted: "#8B949E",
+    primary: "#7DD3FC",
+    primaryStrong: "#38BDF8",
+    success: "#4ADE80",
+    textTag: "white",
+    selectedFg: "black",
+    selectedTag: "black"
+  };
+}
+
+const palette = createPalette();
 
 const tabs = ["Repository", "Commit", "Issues", "Agents", "Search", "Help"];
 const ignoredNames = new Set([".git", "node_modules", "dist", "build", "target", ".next", ".turbo"]);
@@ -183,6 +226,7 @@ const helpTopics = [
       "{bold}Environment{/bold}",
       "Set OPENAI_API_KEY before starting the app to enable the hosted agent.",
       "Set OPENAI_MODEL to override the default model.",
+      "Set GUITUI_THEME=light or GUITUI_THEME=dark to override automatic terminal color detection.",
       "The built-in editor is used for `e` and `/edit`.",
       "Install and authenticate GitHub CLI `gh` for GitHub pull request and issue data."
     ]
@@ -197,6 +241,10 @@ function box(options) {
       fg: palette.text,
       bg: palette.surface,
       border: { fg: palette.border },
+      focus: {
+        border: { fg: palette.borderActive },
+        label: { fg: palette.primaryStrong, bold: true }
+      },
       label: { fg: palette.primary, bold: true }
     },
     padding: { left: 1, right: 1 },
@@ -210,13 +258,18 @@ function list(options) {
     keys: true,
     vi: true,
     mouse: true,
-    scrollbar: { ch: " ", track: { bg: palette.surface2 }, style: { bg: palette.primary } },
+    scrollbar: { ch: " ", track: { bg: palette.surface }, style: { bg: palette.primaryStrong } },
     style: {
       fg: palette.text,
       bg: palette.surface,
-      selected: { bg: palette.surface2, fg: palette.primary, bold: true },
-      item: { hover: { bg: palette.surface2 } },
+      selected: { bg: palette.primaryStrong, fg: palette.selectedFg, bold: true },
+      item: { hover: { bg: palette.surface3, fg: palette.text } },
       border: { fg: palette.border },
+      focus: {
+        border: { fg: palette.borderActive },
+        selected: { bg: palette.primary, fg: palette.selectedFg, bold: true },
+        label: { fg: palette.primaryStrong, bold: true }
+      },
       label: { fg: palette.primary, bold: true }
     },
     border: { type: "line" },
@@ -1146,39 +1199,45 @@ function createLayout(screen, state) {
     top: 0,
     left: 0,
     width: "100%",
-    height: 3,
+    height: 5,
     border: "line",
     padding: { left: 1, right: 1 },
-    content: ""
+    content: "",
+    style: {
+      fg: palette.text,
+      bg: palette.bg,
+      border: { fg: palette.border },
+      label: { fg: palette.primary, bold: true }
+    }
   });
 
   const sidebar = list({
     parent: screen,
     label: " Files ",
-    top: 3,
+    top: 5,
     left: 0,
     width: "30%",
-    height: "100%-6",
+    height: "100%-8",
     items: decorateFileLabels(state.files, state.statusMap)
   });
 
   const center = list({
     parent: screen,
     label: " Git ",
-    top: 3,
+    top: 5,
     left: "30%",
     width: "28%",
-    height: "100%-6",
+    height: "100%-8",
     items: commitItems(state)
   });
 
   const right = box({
     parent: screen,
     label: " File Preview ",
-    top: 3,
+    top: 5,
     left: "58%",
     width: "42%",
-    height: "100%-6",
+    height: "100%-8",
     scrollable: true,
     alwaysScroll: true,
     keys: true,
@@ -1198,10 +1257,12 @@ function createLayout(screen, state) {
     border: { type: "line" },
     style: {
       fg: palette.text,
-      bg: palette.bg,
+      bg: palette.surface,
       border: { fg: palette.primary },
-      focus: { border: { fg: palette.success } }
-    }
+      focus: { border: { fg: palette.success }, label: { fg: palette.success, bold: true } },
+      label: { fg: palette.primary, bold: true }
+    },
+    padding: { left: 1, right: 1 }
   });
 
   const editor = box({
@@ -1223,14 +1284,15 @@ function createLayout(screen, state) {
 
 function renderHeader(header, state) {
   const nav = tabs.map((tab) => {
-    if (tab === state.activeTab) return `{blue-bg}{black-fg} ${tab} {/black-fg}{/blue-bg}`;
-    return ` ${tab} `;
+    if (tab === state.activeTab) return `{cyan-bg}{${palette.selectedTag}-fg}{bold} ${tab} {/bold}{/${palette.selectedTag}-fg}{/cyan-bg}`;
+    return `{gray-fg} ${tab} {/gray-fg}`;
   }).join(" ");
 
   const repo = path.basename(state.cwd);
   const branch = isGitRepo(state.cwd) ? gitBranch(state.cwd) : "no-git";
-  const status = `{green-fg}${escapeTags(branch)}{/green-fg}  ${escapeTags(repo)}  Files ${state.files.length}`;
-  header.setContent(`${nav}\n{gray-fg}${escapeTags(state.mode).padEnd(52)}{/gray-fg}${status}`);
+  const status = `{green-fg}${escapeTags(branch)}{/green-fg}  {${palette.textTag}-fg}${escapeTags(repo)}{/${palette.textTag}-fg}  {gray-fg}${state.files.length} files{/gray-fg}`;
+  const shortcuts = "{gray-fg}1-6 tabs  b files  c commits  a agent  : command  q quit{/gray-fg}";
+  header.setContent(`${nav}\n${status}  {gray-fg}│{/gray-fg}  ${escapeTags(state.mode)}\n${shortcuts}`);
 }
 
 function activeEntries(state) {

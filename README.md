@@ -76,6 +76,12 @@ Optionally choose a model:
 export OPENAI_MODEL="gpt-5"
 ```
 
+The TUI uses your terminal background by default and auto-selects light or dark foreground colors when `COLORFGBG` is available. Override detection when needed:
+
+```bash
+export GUITUI_THEME="light" # or "dark"
+```
+
 The agent receives local Git context such as selected commit, branch, status, remotes, recent commits, selected file diff, and commit patch. It can use web search when current external information is useful.
 
 ## Tabs
