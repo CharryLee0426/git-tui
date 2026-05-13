@@ -137,6 +137,7 @@ Current supported languages:
 
 - Python
 - JavaScript and TypeScript
+- JSON
 - Go
 
 To add a language, add another entry to `languageHighlighters`. Rendering code should not need to change for simple keyword/string/comment highlighting.

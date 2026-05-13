@@ -99,6 +99,13 @@ const languageHighlighters = [
     ])
   },
   {
+    name: "json",
+    extensions: new Set([".json"]),
+    lineComment: "",
+    keywords: new Set(["true", "false", "null"]),
+    builtins: new Set([])
+  },
+  {
     name: "go",
     extensions: new Set([".go"]),
     lineComment: "//",
@@ -144,7 +151,7 @@ const helpTopics = [
     content: [
       "{bold}Repository tab{/bold}",
       "Browse the working directory and inspect file contents.",
-      "Python, JavaScript, TypeScript, and Go files are syntax highlighted in previews and context snippets.",
+      "Python, JavaScript, TypeScript, JSON, and Go files are syntax highlighted in previews and context snippets.",
       "The middle panel shows recent commits when inside a Git repo.",
       "Select a commit and press Enter to show `git show --stat --patch` output.",
       "Press d to show the selected file diff. Press e to open the selected file in the built-in editor.",
@@ -349,7 +356,7 @@ function branchSummary(cwd) {
 }
 
 function escapeTags(value) {
-  return String(value).replaceAll("{", "\\{").replaceAll("}", "\\}");
+  return blessed.escape(String(value));
 }
 
 function colorTag(color, value) {
