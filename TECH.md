@@ -8,7 +8,7 @@ Technical notes for `guitui`.
 - Minimum Node.js: 20.
 - TUI framework: `blessed`.
 - Entry point: `bin/guitui.js`.
-- Main implementation: `src/app.js`.
+- Main orchestration: `src/app.js`.
 
 The executable accepts an optional repository path:
 
@@ -20,7 +20,20 @@ If no path is passed, it uses `process.cwd()`.
 
 ## Architecture
 
-`src/app.js` is organized around a single application state object and a fixed three-pane layout:
+`src/app.js` owns application bootstrapping, shared state, tab routing, and keybindings. Feature logic is split into focused modules:
+
+- `src/config.js`: tabs, ignored names, text extensions, agent model, and help content.
+- `src/theme.js`: theme detection and palette creation.
+- `src/ui.js`: shared Blessed widget factories.
+- `src/shell.js`: generic command wrappers.
+- `src/git.js`: Git command wrappers and branch/repo helpers.
+- `src/highlight.js`: tag escaping and syntax highlighting.
+- `src/repository.js`: file tree building, file previews, context previews, and file diffs.
+- `src/commit.js`: commit graph entries, commit detail rendering, working-tree commit helpers, and patch coloring.
+- `src/discovery.js`: issue discovery and project search.
+- `src/agent.js`: OpenAI request construction, repository context, response parsing, and source extraction.
+
+The UI is organized around a single application state object and a fixed three-pane layout:
 
 - Header: tab navigation and current mode.
 - Sidebar: file tree, changed files, issues, search results, or help topics.
